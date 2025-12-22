@@ -13,6 +13,7 @@ Z analýzy vyplynulo, že některé potraviny dokonce zlevnily. Cukr Krystalový
 
 **4. Existuje rok, kdy byl meziroční nárůst cen potravin výrazně vyšší než růst mezd?**
 Ne
+
 **5. Má výška HDP vliv na změny ve mzdách a cenách potravin?**
 Ano, z dat je patrná shoda, zejména v extrémních výkyvech ekonomiky:
 - Rok 2009 HDP kleslo o 4,66% a ceny potravin reagovaly poklesem o 6,41%
