@@ -1,165 +1,159 @@
 CREATE TABLE t_pavel_kocovsky_project_SQL_primary_final AS
-SELECT 
-cp.id,
-cp.category_code,
-cp.date_from,
-cp.date_to,
-cp.region_code,
-cp.value AS mnozstvi_nakupu,
-cp2.value AS mzda_nebo_osoby, 
-cp2.value_type_code,
-cp2.unit_code,
-cp2.calculation_code,
-cp2.industry_branch_code,
-cp2.payroll_year,
-cp2.payroll_quarter,
-cpc.name,
-cpc.price_value,
-cpc.price_unit,
-cpc2.name AS calculation_name,
-cpib."name" AS industry_name,
-cpu."name" AS changer,
-cpvt."name" AS average_code
-FROM czechia_price AS cp 
-JOIN czechia_payroll AS cp2 
-ON date_part('year' , cp.date_from ) = cp2.payroll_year
-JOIN czechia_price_category AS cpc 
-ON cpc.code = cp.category_code
-JOIN czechia_payroll_calculation AS cpc2 
-ON cpc2. code = cp2.calculation_code
-JOIN czechia_payroll_industry_branch AS cpib 
-ON cpib.code = cp2.industry_branch_code 
-JOIN czechia_payroll_unit AS cpu 
-ON cpu.code = cp2.unit_code 
-JOIN czechia_payroll_value_type AS cpvt 
-ON cpvt.code = cp2.value_type_code;                                ----- JOIN na primární tabulku
+WITH price_avg AS (
+    SELECT
+        EXTRACT(YEAR FROM date_from) AS year_data,
+        category_code,
+        AVG(value) AS avg_price
+    FROM czechia_price
+    GROUP BY EXTRACT(YEAR FROM date_from), category_code
+),
+payroll_avg AS (
+    SELECT
+        payroll_year,
+        industry_branch_code,
+        AVG(value) AS avg_wage
+    FROM czechia_payroll
+    WHERE value_type_code = 5958
+      AND calculation_code = 100 
+    GROUP BY payroll_year, industry_branch_code
+)
+SELECT
+    pa.year_data AS year,
+    cpc.name AS food_category,
+    pa.avg_price,
+    cpib.name AS industry_name,
+    pya.avg_wage
+FROM price_avg AS pa
+JOIN payroll_avg AS pya
+    ON pa.year_data = pya.payroll_year
+JOIN czechia_price_category AS cpc
+    ON pa.category_code = cpc.code
+JOIN czechia_payroll_industry_branch AS cpib
+    ON pya.industry_branch_code = cpib.code;
 
+---
 
---
-CREATE TABLE  t_pavel_kocovsky_project_SQL_secondary_final AS 
-SELECT 
-tpk.mzda_nebo_osoby,
-tpk.mnozstvi_nakupu,
-tpk.payroll_year,
-tpk.value_type_code,
-e.country,
-e."year",
-e.gdp,
-e.population,
-e.gini,
-e.taxes,
-e.fertility,
-e.mortaliy_under5 
-FROM t_pavel_kocovsky_project_sql_primary_final AS tpk
-JOIN economies AS e 
-ON e."year" = tpk.payroll_year
-WHERE e.country  = 'Czech Republic' AND tpk.value_type_code =5958   ---JOIN na dodatečnou tabulku
---
- 
 SELECT *
-FROM t_pavel_kocovsky_project_sql_primary_final AS tpk;
+FROM t_pavel_kocovsky_project_sql_primary_final AS tpkf
 
 
 --
 
-SELECT 
-AVG(tpk.mzda_nebo_osoby) AS avg_salary,
-tpk.payroll_year,
-tpk.industry_name,
-tpk.industry_branch_code 
-FROM t_pavel_kocovsky_project_sql_primary_final AS tpk
-WHERE tpk.value_type_code = 5958    						                      --- první otázka
-GROUP BY tpk.payroll_year, tpk.industry_name, tpk.industry_branch_code
-ORDER BY industry_branch_code ASC; 
+CREATE TABLE t_pavel_kocovsky_project_SQL_secondary_final AS
+SELECT
+    e.country,
+    e.year,
+    e.gdp,
+    e.gini,
+    e.population
+FROM economies AS e
+JOIN countries AS c
+    ON e.country = c.country
+WHERE c.continent = 'Europe'
+  AND e.year BETWEEN 2006 AND 2018
+ORDER BY e.country, e.year;
+
 --
 
-SELECT 
-tpk."name", 
-AVG(tpk.mzda_nebo_osoby) AS avg_salary,
-tpk.mnozstvi_nakupu AS price,
-tpk.price_value,
-tpk.price_unit, 
-tpk.date_from,
-AVG(tpk.mzda_nebo_osoby)/tpk.mnozstvi_nakupu AS kolik_nakoupim
-from t_pavel_kocovsky_project_sql_primary_final AS tpk
-WHERE tpk.category_code = 114201 AND tpk.value_type_code = 5958
-GROUP BY tpk."name",date_from, tpk.mnozstvi_nakupu,tpk.price_value,tpk.price_unit    ----- druhá otázka mléko první období
-ORDER BY date_from ASC
-LIMIT 1;
+WITH CalculatedData AS (
+    SELECT
+        year,
+        industry_name,
+        avg_wage,
+        avg_wage - LAG(avg_wage) OVER (PARTITION BY industry_name ORDER BY year) AS diff_raw
+    FROM t_pavel_kocovsky_project_SQL_primary_final
+    GROUP BY year, industry_name, avg_wage
+)
+SELECT
+    year,
+    industry_name,
+    ROUND(avg_wage, 0) AS avg_wage,
+    ROUND(diff_raw, 0) AS wage_difference
+FROM CalculatedData
+WHERE diff_raw < 0
+ORDER BY wage_difference ASC;    --- První otázka
 
-SELECT 
-tpk."name", 
-AVG(tpk.mzda_nebo_osoby) AS avg_salary,
-tpk.mnozstvi_nakupu AS price,
-tpk.price_value,
-tpk.price_unit, 
-tpk.date_to, 
-AVG(tpk.mzda_nebo_osoby)/tpk.mnozstvi_nakupu AS kolik_nakoupim
-from t_pavel_kocovsky_project_sql_primary_final AS tpk
-WHERE tpk.category_code = 114201 AND tpk.value_type_code = 5958
-GROUP BY tpk."name",date_to,tpk.mnozstvi_nakupu,tpk.price_value,tpk.price_unit    ----- druhá otázka mléko poslední období
-ORDER BY date_to desc
-LIMIT 1;
-
-SELECT 
-tpk."name", 
-AVG(tpk.mzda_nebo_osoby) AS avg_salary,
-tpk.mnozstvi_nakupu AS price,
-tpk.price_value,
-tpk.price_unit, 
-tpk.date_from,
-AVG(tpk.mzda_nebo_osoby)/tpk.mnozstvi_nakupu AS kolik_nakoupim
-from t_pavel_kocovsky_project_sql_primary_final AS tpk
-WHERE tpk.category_code = 111301 AND tpk.value_type_code = 5958
-GROUP BY tpk."name",date_from, tpk.mnozstvi_nakupu,tpk.price_value,tpk.price_unit    ----- druhá otázka chleba první období
-ORDER BY date_from ASC
-LIMIT 1;
-
-SELECT 
-tpk."name", 
-AVG(tpk.mzda_nebo_osoby) AS avg_salary,
-tpk.mnozstvi_nakupu AS price,
-tpk.price_value,
-tpk.price_unit, 
-tpk.date_to, 
-AVG(tpk.mzda_nebo_osoby)/tpk.mnozstvi_nakupu AS kolik_nakoupim
-from t_pavel_kocovsky_project_sql_primary_final AS tpk
-WHERE tpk.category_code = 111301 AND tpk.value_type_code = 5958
-GROUP BY tpk."name",date_to,tpk.mnozstvi_nakupu,tpk.price_value,tpk.price_unit    ----- druhá otázka chleba poslední období
-ORDER BY date_to desc
-LIMIT 1
-
----
-
-SELECT 
-tpk."name",
-AVG(tpk.mnozstvi_nakupu ) AS avg_price_year,
-tpk.payroll_year
-FROM t_pavel_kocovsky_project_sql_primary_final AS tpk
-GROUP BY payroll_year, "name"  
-ORDER BY "name" ASC;                                         ---------Třetí otázka
-
---- 
+--
 
 SELECT
-AVG(tpk.mzda_nebo_osoby) AS avg_salary,
-AVG(tpk.mnozstvi_nakupu ) AS avg_price_year,
-tpk.payroll_year
-FROM t_pavel_kocovsky_project_sql_primary_final AS tpk  ---- čtvrtá otázka
-WHERE tpk.value_type_code = 5958
-GROUP BY tpk.payroll_year   
-ORDER BY payroll_year  ASC;
+    year,
+    food_category,
+    ROUND(AVG(avg_price)::numeric, 2) AS price,
+    ROUND(AVG(avg_wage)::numeric, 0) AS avg_wage,
+    ROUND((AVG(avg_wage) / AVG(avg_price))::numeric, 0) AS units_to_buy
+FROM t_pavel_kocovsky_project_SQL_primary_final
+WHERE food_category IN ('Mléko polotučné pasterované', 'Chléb konzumní kmínový')
+  AND year IN (2006, 2018)
+GROUP BY year, food_category
+ORDER BY food_category, year;   --- druhá otázka
 
+--
 
-
----
-
+WITH price_growth AS (
+    SELECT
+        year,
+        food_category,
+        avg_price,
+        LAG(avg_price) OVER (PARTITION BY food_category ORDER BY year) AS prev_year_price
+    FROM t_pavel_kocovsky_project_SQL_primary_final
+    GROUP BY year, food_category, avg_price
+)
 SELECT
-AVG(tpk2.mzda_nebo_osoby) AS avg_salary,
-AVG(tpk2.mnozstvi_nakupu ) AS avg_price_year,
-tpk2.payroll_year,
-tpk2.gdp 
-FROM t_pavel_kocovsky_project_sql_secondary_final AS tpk2  ---- pátá otázka
-WHERE tpk2.value_type_code = 5958
-GROUP BY tpk2.payroll_year , tpk2.gdp 
-ORDER BY tpk2.payroll_year   ASC;
+    food_category,
+    ROUND(AVG((avg_price - prev_year_price) / prev_year_price * 100)::numeric, 2) AS avg_yearly_growth_pct
+FROM price_growth
+WHERE prev_year_price IS NOT NULL
+GROUP BY food_category
+ORDER BY avg_yearly_growth_pct ASC
+LIMIT 1;   -- třetí otázka
+
+--
+
+WITH yearly_stats AS (
+    SELECT
+        year,
+        AVG(avg_price) AS global_price,
+        AVG(avg_wage) AS global_wage
+    FROM t_pavel_kocovsky_project_SQL_primary_final
+    GROUP BY year
+),
+growth_calc AS (
+    SELECT
+        year,
+        (global_price - LAG(global_price) OVER (ORDER BY year)) / LAG(global_price) OVER (ORDER BY year) * 100 AS price_growth,
+        (global_wage - LAG(global_wage) OVER (ORDER BY year)) / LAG(global_wage) OVER (ORDER BY year) * 100 AS wage_growth
+    FROM yearly_stats
+)
+SELECT
+    year,
+    ROUND(price_growth::numeric, 2) AS price_growth_pct,
+    ROUND(wage_growth::numeric, 2) AS wage_growth_pct,
+    ROUND((price_growth - wage_growth)::numeric, 2) AS difference_pct
+FROM growth_calc
+WHERE (price_growth - wage_growth) > 10; --- Čtvrtá otázka
+
+--
+
+
+WITH czech_stats AS (
+    SELECT
+        year,
+        AVG(avg_price) AS global_price,
+        AVG(avg_wage) AS global_wage
+    FROM t_pavel_kocovsky_project_SQL_primary_final
+    GROUP BY year
+),
+growth_calc AS (
+    SELECT
+        cs.year,
+        ROUND( ((sec.gdp - LAG(sec.gdp) OVER (ORDER BY sec.year)) / LAG(sec.gdp) OVER (ORDER BY sec.year) * 100)::numeric, 2) AS gdp_growth,
+        ROUND( ((cs.global_price - LAG(cs.global_price) OVER (ORDER BY cs.year)) / LAG(cs.global_price) OVER (ORDER BY cs.year) * 100)::numeric, 2) AS price_growth,
+        ROUND( ((cs.global_wage - LAG(cs.global_wage) OVER (ORDER BY cs.year)) / LAG(cs.global_wage) OVER (ORDER BY cs.year) * 100)::numeric, 2) AS wage_growth
+    FROM czech_stats AS cs
+    JOIN t_pavel_kocovsky_project_SQL_secondary_final AS sec
+        ON cs.year = sec.year
+    WHERE sec.country = 'Czech Republic'
+)
+SELECT *
+FROM growth_calc
+ORDER BY year; -- pátá otázka
