@@ -14,3 +14,22 @@ Tato tabulka obsahuje sjednocená data o mzdách a cenách potravin pro Českou 
 Obsahuje makroekonomická data pro porovnání s HDP.
 * **Zpracování:** Data byla napojena z tabulky economies a filtrována pouze na relevantní roky (2006–2018), aby odpovídala primární tabulce.
 
+* # Report prodeje: Fiktivní obchod s elektronikou
+
+Pro vizualizaci dat jsem si vybral **fiktivní obchod s elektronikou**. Snažil jsem se klást důraz na **jednoduchost dostupných dat**, aby nebylo náročné se v reportu pohybovat a data byla jasná na první dobrou.
+
+### Interaktivita a ovládání
+Pro filtrování jsem zvolil **interaktivní funkčnost Power BI**, tedy klikání přímo na dané:
+* **Pobočky**
+* **Měsíce**
+
+Tento přístup jsem upřednostnil před klasickými průřezy (slicery), protože mi přišel uživatelsky **rychlejší a plynulejší**.
+
+### Klíčové ukazatele (KPI)
+* **Hlavní ukazatele:** Jsou umístěny v levém horním rohu.
+* **Časový kontext:** Pod každým KPI je malý graf znázorňující danou hodnotu v čase. Bez tohoto zobrazení by samotná hodnota nebyla dobře porovnatelná.
+
+### Struktura stránek
+1. **První stránka:** Celkový přehled a výkonnostní metriky.
+2. **Druhá stránka:** Obsahuje stejné KPI, ale s možností filtrovat podle konkrétních **zákazníků**.
+
