@@ -16,17 +16,13 @@ Obsahuje makroekonomická data pro porovnání s HDP.
 
 * # Report prodeje: Fiktivní obchod s elektronikou
 
-Pro vizualizaci dat jsem si vybral **fiktivní obchod s elektronikou**. Snažil jsem se klást důraz na **jednoduchost dostupných dat**, aby nebylo náročné se v reportu pohybovat a data byla jasná na první dobrou.
+Pro vizualizaci dat jsem si vybral **fiktivní obchod s elektronikou**. Snažil jsem se klást důraz na **jednoduchost dostupných dat**, aby nebylo náročné se v reportu pohybovat a data byla jasná na první dobrou. 
 
 ### Interaktivita a ovládání
-Pro filtrování jsem zvolil **interaktivní funkčnost Power BI**, tedy klikání přímo na dané:
-* **Pobočky**
-* **Měsíce**
-
-Tento přístup jsem upřednostnil před klasickými průřezy (slicery), protože mi přišel uživatelsky **rychlejší a plynulejší**.
+Pro filtrování jsem zvolil **průřezy v horní stránce projektu** a také **navigaci po stránkách** (pravý horní roh)
 
 ### Klíčové ukazatele (KPI)
-* **Hlavní ukazatele:** Jsou umístěny v levém horním rohu.
+* **Hlavní ukazatele:** Jsou umístěny v levé části
 * **Časový kontext:** Pod každým KPI je malý graf znázorňující danou hodnotu v čase. Bez tohoto zobrazení by samotná hodnota nebyla dobře porovnatelná.
 
 ### Struktura stránek
